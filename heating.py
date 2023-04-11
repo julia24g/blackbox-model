@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from datetime import datetime
+from House_Heating_Load_Model import returnHeatingLoad
 
 BTU_CONVERT = 3412.142 # rate we need to multiply kW heating demand by to get BTU/hr
 
@@ -49,18 +50,19 @@ def heatingCapacity(t, ratedCapacity):
 
 ### User Input ###
 
-heating_demand = input("Please input your maximum heating demand (in kW) on the coldest day of the year: ")
-ambient_temp = float(input("Please input the ambient temperature (in Celsius): "))
+# heating_demand = input("Please input your maximum heating demand (in kW) on the coldest day of the year: ")
+# ambient_temp = float(input("Please input the ambient temperature (in Celsius): "))
 
-print()
-ratedCapacity = selectHP(float(heating_demand))
-print("Heating COP: ", heatingCOP(float(ambient_temp), float(ratedCapacity)))
+# print()
+
+# print("Heating COP: ", heatingCOP(float(ambient_temp), float(ratedCapacity)))
 
 ## Ask user for ambient temperature OR list of ambient temperatures for each day or each hour - calculate COP on each hour
 temp_table = np.genfromtxt('2020temp.csv', dtype='str')
 
 print("Calculating COP for 365 days and 24 hours a day")
 heating_demand = input("Please input your maximum heating demand (in kW) on the coldest day of the year: ")
+ratedCapacity = selectHP(float(heating_demand))
 print()
 
 annualCOP = [[0 for i in range(24)] for j in range(365)]
@@ -72,9 +74,9 @@ for i in range(365):
 print("Annual COP: ")
 
 
-## Ask user for csv file of heating demand per hour (365 x 24 matrix)
-#hd_table = np.genfromtxt('heatingdemand.csv', dtype='str') --> for now, we will generate a random matrix below
-hd_table = np.random.randint(10, size=(365, 24))
+## Using heating demand from House Heating Load Model ## 
+heatingLoad = returnHeatingLoad() # getting heating load from House Heating Load Model
+hd_table = np.full((365, 24), heatingLoad) # filling hourly matrix with value from heating load
 
 print("Calculating heating capacity for 365 days and 24 hours a day using temperature file and heating demand file.")
 print()
@@ -85,17 +87,18 @@ for i in range(365):
     for j in range(24):
         annualHeatingCapacity[i][j] = heatingCapacity(float(temp_table[i][j]), float(hd_table[i][j])) # iterating through both temperature matrix and heating demand matrix
 
-
-print("Annual Heating Capacity matrix: ")
-
 # Convert heating demand and heating capacity into daily (either average or summation), and graph those two lines daily for the entire year
 dailyHeatingCapacity = []
 
-total = 0 # reset total for next day
-for i in range(365):
-    average = sum(annualHeatingCapacity[i]) / 24
+for i in range(365): # going through each day of the year
+    average = sum(annualHeatingCapacity[i]) / 24 # finding an average for each hour
     dailyHeatingCapacity.append(average)
 
 # Plotting the graph
-plt.plot(dailyHeatingCapacity)
+plt.plot(dailyHeatingCapacity, label='Heating Capacity')
+plt.axhline(y = heatingLoad, color = 'r', linestyle = '-', label="Heating Load")
+plt.xlabel("Day of the Year")
+plt.ylabel("kiloWatts")
+plt.title("Heating Capacity vs Heating Load")
+leg = plt.legend()
 plt.show()

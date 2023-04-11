@@ -28,7 +28,7 @@ def selectHP(cooling_demand_kW):
     return ratedCapacity # returns rated capacity in BTU/hr
 
 # Cooling COP function
-def heatingCOP(ti, tiwb, to, ratedCapacity):
+def coolingCOP(ti, tiwb, to, ratedCapacity):
     cooling_load = ratedCapacity # selects the heat pump
 
     for i in range(len(table1[0])):
@@ -37,7 +37,7 @@ def heatingCOP(ti, tiwb, to, ratedCapacity):
         
 
 # Cooling Load function
-def heatingCapacity(ti, tiwb, to, ratedCapacity):
+def coolingLoad(ti, tiwb, to, ratedCapacity):
     cooling_load = ratedCapacity # selects the heat pump
     for i in range(len(table1[0])):
         if table1[0][i] >= cooling_load:
@@ -47,3 +47,47 @@ def heatingCapacity(ti, tiwb, to, ratedCapacity):
 
 
 ## User Input ##
+
+## Ask user for ambient temperature OR list of ambient temperatures for each day or each hour - calculate COP on each hour
+temp_table = np.genfromtxt('2020temp.csv', dtype='str')
+
+print("Calculating COP for 365 days and 24 hours a day")
+cooling_demand = input("Please input your maximum cooling demand (in kW) on the hottest day of the year: ")
+ratedCapacity = selectHP(float(cooling_demand))
+print()
+
+annualCOP = [[0 for i in range(24)] for j in range(365)]
+
+for i in range(365):
+    for j in range(24):
+        annualCOP[i][j] = coolingCOP(float(temp_table[i][j]), float(ratedCapacity))
+
+print("Annual COP: ")
+
+print("Calculating cooling load for 365 days and 24 hours a day using temperature file and cooling demand file.")
+print()
+
+# Do not have a cooling demand file yet, so generating random cooling loads ranging from 1 to 10
+cd_table = np.random.randint(10, (365, 24)) # filling hourly matrix with value from heating load
+
+annualHeatingCapacity = [[0 for i in range(24)] for j in range(365)]
+
+for i in range(365):
+    for j in range(24):
+        annualHeatingCapacity[i][j] = coolingLoad(float(temp_table[i][j]), float(cd_table[i][j])) # iterating through both temperature matrix and heating demand matrix
+
+
+print("Annual Cooling Load matrix: ")
+
+# Convert heating demand and heating capacity into daily (either average or summation), and graph those two lines daily for the entire year
+dailyCoolingLoad = []
+
+total = 0 # reset total for next day
+for i in range(365):
+    average = sum(annualHeatingCapacity[i]) / 24
+    dailyCoolingLoad.append(average)
+
+# Plotting the graph
+plt.plot(dailyCoolingLoad)
+plt.show()
+
